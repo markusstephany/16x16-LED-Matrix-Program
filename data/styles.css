@@ -1,0 +1,162 @@
+body {
+    background: white;
+}
+
+.leds-item, .leds-col, .leds-row, .leds-space {
+    width: 16px;
+    min-width: 16px;
+    max-width: 16px;
+    height: 16px;
+    min-height: 16px;
+    max-height: 16px;
+    cursor: pointer;
+    font-size: 9px;
+}
+
+#matrix {
+    background: #888;
+}
+
+.leds-col, .leds-row, .leds-space {
+    background: white;
+    border-color: white;
+}
+
+table {
+    border-color: white;
+}
+
+.leds-item {
+    background: #666;
+    border:1px solid #333;
+    border-radius: 50%;
+}
+
+
+.leds-item.active {
+    border:1px solid rgb(155, 0, 0);
+    background: red radial-gradient(ellipse at 30% 30%, white 0%, rgb(255, 30, 0) 25%, red 50%);
+}
+
+.leds-item:hover {
+    box-shadow: 0 0 1px #cccccc;
+}
+
+.dark {
+    background-color: #333;
+    color: white;
+    padding: 2px;
+}
+
+#frames, #frames1 {
+    height: 150px;
+    overflow-y: scroll;
+    text-align: left;
+    border: solid #666666 1px;
+    background: #ccc linear-gradient(#ccc, #aaa)
+}
+
+#frames .frame, #frames1 .frame {
+    display: inline-block;
+    background-color: #555;
+    border-spacing: 1px;
+    border-collapse: separate;
+    border: solid #ccc 2px;
+}
+
+#frames .frame.selected {
+    border-color: #3399ff;
+}
+
+input, textarea {
+    background-color: white;
+    color: rgb(35, 35, 35);
+}
+
+#ticker {
+    display: inline-block;
+    text-align: left;
+}
+
+#matrix, #frames {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#ticker-input {
+    display: inline-block;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    min-height: 20%;
+    max-height: 50%;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: rgba( 255, 255, 255, .8) url('wait.gif') 50% 50% no-repeat;
+}
+
+body.loading .modal {
+    overflow: hidden;
+    display: block;
+}
+
+#ticker {
+    visibility: none;
+}
+
+/* Notice how we're targeting the dialog box's title bar through the custom class */
+
+.dialog .ZebraDialog_Title {
+    background: rgb(35, 35, 35);
+    color: white;
+}
+
+.dialog .ZebraDialog_Body {
+    background: white;
+    color: black;
+}
+
+.dialog .ZebraDialog {
+    margin: 10px;
+    padding: 20px;
+}
+
+.dialog .ZebraDialog_Buttons {
+    background: rgb(35, 35, 35);
+    color: white;
+}
+
+.dialog .ZebraDialog_Buttons a {
+    color: black;
+    background-color: #f0f0f0;
+    padding: 4px;
+}
+
+.dialog .ZebraDialog_Buttons a:hover, .dialog .ZebraDialog_Buttons a:focus {
+    background-color: #e0e0e0;
+    color: black;
+}
+
+.context-menu-icon::before {
+    color: #333;
+}
+
+.context-menu-icon.context-menu-icon--fa::before {
+    color: #333;
+}
+
+.context-menu-icon.context-menu-icon--fa5 i, .context-menu-icon.context-menu-icon--fa5 svg {
+    color: #333;
+}
+
+.context-menu-item.context-menu-hover {
+    background-color: #333;
+}
