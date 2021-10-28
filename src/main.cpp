@@ -315,6 +315,7 @@ int sizeFrames = 0;
 int frameStart = 0;
 int windowStart = 0;
 int windowEnd = 0;
+ulong restartEsp = 0;
 ushort *frames = NULL;
 
 void clearMatrix()
@@ -591,6 +592,29 @@ void setupWebServer()
               request->send(200, "text/plain", "OK");
             });
 
+  server.on("/restartfilm", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              Serial.println("/restartfilm");
+              if (SPIFFS.exists("/data"))
+              {
+                reloadDataFile();
+              }
+              request->send(200, "text/plain", "OK");
+            });
+
+  server.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              Serial.println("/restart");
+              request->send(200, "text/plain", "OK");
+              restartEsp = millis() + 500;
+            });
+
+  server.on("/ping", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              Serial.println("/ping");
+              request->send(200, "text/plain", "OK");
+            });
+
   server.on("/writedata", HTTP_GET, [](AsyncWebServerRequest *request)
             {
               int paramsNr = request->params();
@@ -795,6 +819,12 @@ void loop()
   while (frameStart < numFrames)
   {
     currentTime = millis();
+    if (restartEsp != 0 && restartEsp < currentTime)
+    {
+      restartEsp = 0;
+      Serial.println("ESP.restart();");
+      ESP.restart();
+    }
     delta = currentTime - lastTime - lastDuration;
     lastTime = currentTime;
     if (!initialized)
@@ -819,6 +849,7 @@ void playTicker()
   while (frameStart < numFrames)
   {
     ulong m = millis();
+
     setMatrix();
     int frameS = checkFrameStart(frameStart);
     delay(frames[frameS * sizeFrames] + millis() - m);
