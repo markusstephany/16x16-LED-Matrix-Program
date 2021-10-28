@@ -11,6 +11,8 @@ $(function () {
     var $updateButton = $('#update-button');
     var $readButton = $('#read-button');
     var $writeButton = $('#write-button');
+    var $restartFilmButton = $('#restartfilm-button');
+    var $restartButton = $('#restart-button');
     var copiedFrame = "";
 
     var playMatrix = [];
@@ -887,7 +889,35 @@ $(function () {
         return true;
     }
 
+    async function callEsp(url, data) {
 
+        let response = await fetch(url);
+
+        if (!response.ok) {
+            alert("HTTP-Fehler: " + response.status);
+            return false;
+        }
+        let text = await response.text();
+        if (text != 'OK') {
+            alert("Fehler beim Aufrufen des Controllers");
+            return false;
+        }
+
+        return true;
+    }
+
+    async function pingEsp() {
+        try {
+            var response = await fetch('ping');
+            if (!response.ok)
+                return false;
+            var text = await response.text();
+            return text == 'OK';
+        }
+        catch {
+            return false;
+        }
+    }
 
     function saveStateToHash() {
 
@@ -1134,6 +1164,51 @@ $(function () {
             }
         );
     });
+
+    $restartFilmButton.click(async function () {
+        $body.addClass("loading");
+        stopPlaying();
+        await callEsp("restartfilm");
+        $body.removeClass("loading");
+        $('#play-button-stop').show();
+        $('#play-button-play').hide();
+        generatePlayList();
+        startPlaying();
+    });
+
+    const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
+
+    $restartButton.click(async function () {
+        new $.Zebra_Dialog(
+            "Controller neu starten?",
+            {
+                type: "warning",
+                title: "Neustart ESP32",
+                buttons: ["Ja", "Nein"],
+                custom_class: "dialog",
+                onClose: async function (caption) {
+
+                    if (caption === "Ja") {
+                        saveStateToHash();
+
+                        $body.addClass("loading");
+
+                        await callEsp("restart");
+                        await sleep(2000);
+
+                        while (! await pingEsp()) {
+                            await sleep(500);
+
+                        }
+
+                        $body.removeClass("loading");
+                    }
+
+                }
+            }
+        );
+    });
+
 
     $readButton.click(async function () {
 
@@ -1603,9 +1678,9 @@ $(function () {
             while (temp[y1].length <= x1)
                 temp[y1].push(0);
             temp[y1][x1] += v;
-            x ++;
+            x++;
             if (x >= 16) {
-                y ++;
+                y++;
                 x = 0;
             }
         }
