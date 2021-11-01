@@ -1714,15 +1714,17 @@ $(function () {
         var tgt = evt.target,
             files = tgt.files;
         if (files) {
-
-            // FileReader support
-            const img = new Image();
-            img.src = URL.createObjectURL(files[0]);
-            img.onload = function () {
-                URL.revokeObjectURL(this.src);
-                appendImageFrame(this);
-                document.getElementById('imagefiles').value = null;
-            }
+            [...files].every(f => {
+                // FileReader support
+                const img = new Image();
+                img.src = URL.createObjectURL(f);
+                img.onload = function () {
+                    URL.revokeObjectURL(this.src);
+                    appendImageFrame(this);
+                    document.getElementById('imagefiles').value = null;
+                }
+                return true;
+            });
         }
     }
 

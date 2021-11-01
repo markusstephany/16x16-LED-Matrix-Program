@@ -4,8 +4,6 @@
 #include "SPIFFS.h"
 #include "ESPAsyncWebServer.h"
 
-const char *ssid = "WIFI SSID";
-const char *password = "WIFI PASSPHRASE";
 AsyncWebServer server(80);
 
 #define LEDMATRIX_CS_PIN 16
@@ -13,6 +11,22 @@ AsyncWebServer server(80);
 #define LEDMATRIX_SEGMENTS 4
 
 #define MAX_FRAMES_DATA_SIZE 49152
+
+#define USEWPS
+
+#ifndef USEWPS
+const char *ssid = "WIFI SSID";
+const char *password = "WIFI PASSPHRASE";
+#else
+#include "esp_wps.h"
+
+#define ESP_WPS_MODE WPS_TYPE_PBC
+#define ESP_MANUFACTURER "ESPRESSIF"
+#define ESP_MODEL_NUMBER "ESP32"
+#define ESP_MODEL_NAME "ESPRESSIF IOT"
+#define ESP_DEVICE_NAME "LedMatrix16x16_1"
+
+#endif
 
 LG_Matrix_Print lmd(LEDMATRIX_SEGMENTS, LEDMATRIX_CS_PIN, 0);
 
@@ -710,6 +724,150 @@ void setupWebServer()
   Serial.println("HTTP server started");
 }
 
+#ifdef USEWPS
+bool wpsConnected = false;
+static esp_wps_config_t config;
+
+void wpsInitConfig()
+{
+  config.crypto_funcs = &g_wifi_default_wps_crypto_funcs;
+  config.wps_type = ESP_WPS_MODE;
+  strcpy(config.factory_info.manufacturer, ESP_MANUFACTURER);
+  strcpy(config.factory_info.model_number, ESP_MODEL_NUMBER);
+  strcpy(config.factory_info.model_name, ESP_MODEL_NAME);
+  strcpy(config.factory_info.device_name, ESP_DEVICE_NAME);
+}
+
+void wpsStart()
+{
+  if (esp_wifi_wps_enable(&config))
+  {
+    Serial.println("WPS Enable Failed");
+  }
+  else if (esp_wifi_wps_start(0))
+  {
+    Serial.println("WPS Start Failed");
+  }
+}
+
+void wpsStop()
+{
+  if (esp_wifi_wps_disable())
+  {
+    Serial.println("WPS Disable Failed");
+  }
+}
+
+String wpspin2string(uint8_t a[])
+{
+  char wps_pin[9];
+  for (int i = 0; i < 8; i++)
+  {
+    wps_pin[i] = a[i];
+  }
+  wps_pin[8] = '\0';
+  return (String)wps_pin;
+}
+
+void WiFiEvent(WiFiEvent_t event, system_event_info_t info)
+{
+  switch (event)
+  {
+  case SYSTEM_EVENT_STA_START:
+    Serial.println("Station Mode Started");
+    break;
+  case SYSTEM_EVENT_STA_GOT_IP:
+    Serial.println("Connected to :" + String(WiFi.SSID()));
+    Serial.print("Got IP: ");
+    Serial.println(WiFi.localIP());
+    wpsConnected = true;
+    break;
+  case SYSTEM_EVENT_STA_DISCONNECTED:
+    Serial.println("Disconnected from station, attempting reconnection");
+    wpsConnected = false;
+    WiFi.reconnect();
+    break;
+  case SYSTEM_EVENT_STA_WPS_ER_SUCCESS:
+    Serial.println("WPS Successful, stopping WPS and connecting to: " + String(WiFi.SSID()));
+    wpsStop();
+    delay(10);
+    WiFi.begin();
+    break;
+  case SYSTEM_EVENT_STA_WPS_ER_FAILED:
+    Serial.println("WPS Failed, retrying");
+    wpsStop();
+    wpsStart();
+    break;
+  case SYSTEM_EVENT_STA_WPS_ER_TIMEOUT:
+    Serial.println("WPS Timedout, retrying");
+    wpsStop();
+    wpsStart();
+    break;
+  case SYSTEM_EVENT_STA_WPS_ER_PIN:
+    Serial.println("WPS_PIN = " + wpspin2string(info.sta_er_pin.pin_code));
+    break;
+  default:
+    break;
+  }
+}
+#endif
+
+void initWifi()
+{
+  wpsConnected = true;
+  byte pos = 0xff;
+#ifndef USEWPS
+
+  // Connect to Wi-Fi network with SSID and password
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  int dotDelay = 500;
+#else
+
+  // connect using wps
+  Serial.println("Starting WPS...");
+  ulong endWait = millis() + 5000;
+  int dotDelay = 1000;
+  WiFi.begin();
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    if (millis() < endWait)
+    {
+      delay(dotDelay);
+      setPixel(15 - (pos & 15), pos / 16, true);
+      lmd.display();
+      pos--;
+      Serial.print(".");
+    }
+    else
+      break;
+  }
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    wpsConnected = false;
+    WiFi.onEvent(WiFiEvent);
+    WiFi.mode(WIFI_MODE_STA);
+    wpsInitConfig();
+    wpsStart();
+  }
+#endif
+  while ((!wpsConnected) || (WiFi.status() != WL_CONNECTED))
+  {
+    delay(dotDelay);
+    setPixel(15 - (pos & 15), pos / 16, true);
+    lmd.display();
+    pos--;
+    Serial.print(".");
+  }
+
+  // Print local IP address and start web server
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -762,24 +920,7 @@ void setup()
   setRow(0x0f, 0x0000);
   lmd.display();
 
-  // Connect to Wi-Fi network with SSID and password
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
-  byte pos = 0xff;
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    setPixel(15 - (pos & 15), pos / 16, true);
-    lmd.display();
-    pos--;
-    Serial.print(".");
-  }
-  // Print local IP address and start web server
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  initWifi();
 
   delay(500);
   setupWebServer();
