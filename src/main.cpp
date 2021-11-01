@@ -723,8 +723,9 @@ void setupWebServer()
 
   Serial.println("HTTP server started");
 }
-
-#ifdef USEWPS
+#ifndef USEWPS
+bool wpsConnected = true;
+#else
 bool wpsConnected = false;
 static esp_wps_config_t config;
 
