@@ -1580,7 +1580,7 @@ $(function () {
                 }
             },
             image: {
-                name: "Bild einfügen",
+                name: "Bild(er) einfügen",
                 callback: function () {
                     performInsertImageMenuCommand($(this));
                 }
